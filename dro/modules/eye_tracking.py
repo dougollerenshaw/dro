@@ -102,7 +102,7 @@ def event_triggered_response(df, parameter, event_times, t_before=10, t_after=10
         t = df_local[time_key] - event_time
         y = df_local[parameter]
         
-        d.update({'event_{}'.format(ii):np.interp(d[time_key], t, y)})
+        d.update({'{}'.format(ii):np.interp(d[time_key], t, y)})
     return pd.DataFrame(d)
 
 def get_event_triggered_responses(ed,bd):
@@ -147,7 +147,7 @@ def get_event_triggered_responses(ed,bd):
     return responses
 
 def subtract_mean(df):
-    cols = [col for col in df.columns if col is not 't']
+    cols = [col for col in df.columns if col not in ['t','time']]
     for col in cols:
         df[col] = df[col] - df[col].mean(axis=0)
     return df
@@ -207,7 +207,9 @@ def open_eye_data(osid):
     except:
         return None
 
-def get_response_data(ed,bd):
+def get_response_data(osid):
+    ed = open_eye_data(osid)
+    bd = open_behavior_data(osid)
     v = get_event_triggered_responses(ed,bd)
     return v
 
@@ -218,3 +220,77 @@ def open_behavior_data(osid):
     except (AssertionError, OSError, TypeError):
         print('failed on {}'.format(osid))
         return None    
+
+def get_session_name(input_name):
+    session_name_dict = {
+        'OPHYS_1_images_A':'A1', 
+        'OPHYS_2_images_A_passive':'A2', 
+        'OPHYS_3_images_A':'A3',
+        'OPHYS_4_images_B':'B1', 
+        'OPHYS_5_images_B_passive':'B2', 
+        'OPHYS_6_images_B':'B3'
+    }
+    return session_name_dict[input_name]
+
+def get_session_color(input_name):
+    session_names = ['A1','A2','A3','B1','B2','B3']
+    palette = get_colors_for_session_numbers()
+    return palette[session_names.index(input_name)]
+
+def get_colors_for_session_numbers():
+    reds = sns.color_palette('Reds_r', 6)[:5][::2]
+    blues = sns.color_palette('Blues_r', 6)[:5][::2]
+    return reds+blues
+
+
+def get_individual_image_responses(ed,bd):
+    images = [im for im in np.sort(bd.visual_stimuli['image_name'].unique()) if im != 'grayscreen']
+
+    pupil_responses = {}
+    running_responses = {}
+    for image in images:
+        first_times = bd.visual_stimuli.query('image_name == @image and consecutive_flashes == 0')['time']
+        pupil_responses[image] = event_triggered_response(ed.ellipse_fits['pupil'],parameter='blink_corrected_area',event_times=first_times,t_before=5,t_after=30)
+        running_responses[image] = event_triggered_response(bd.running,parameter='speed',event_times=first_times,t_before=5,t_after=30)
+    
+    return pupil_responses,running_responses
+
+def plot_individual_image_responses(pupil_responses,running_responses):
+    palette = sns.color_palette("brg", 8)
+
+    assert pupil_responses.keys() == running_responses.keys(), 'keys in response dictionaries must match'
+    images = sorted(list(pupil_responses.keys()))
+
+    fig,ax=plt.subplots(2,1,sharex=True,figsize=(12,7))
+    for ii,image in enumerate(images):
+
+        df = running_responses[image]
+        cols = [c for c in df if c not in ['t','time']]
+        ax[0].plot(
+            df['time'],
+            df[cols].mean(axis=1),
+            color = palette[ii],
+        )
+
+        df = subtract_mean(pupil_responses[image])
+        cols = [c for c in df if c not in ['t','time']]
+        ax[1].plot(
+            df['time'],
+            df[cols].mean(axis=1),
+            color = palette[ii],
+        )
+
+    ax[0].set_title('running speed')
+    ax[0].set_ylabel('cm/s')
+    ax[1].set_title('pupil diameter')
+    ax[1].set_ylabel('change in pupil diameter (pixels**2)')
+    ax[-1].set_xlabel('time from change (s)')
+
+    ax[0].legend(images)
+    for axis in ax:
+        designate_flashes(axis,pre_color='darkgreen',post_color='blue')
+    axis.set_xlim(-5,30)
+    fig.tight_layout()
+    sns.despine()
+    
+    return fig,ax
