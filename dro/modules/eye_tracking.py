@@ -112,7 +112,7 @@ def get_event_triggered_responses(ed,bd):
     responses['running'] = {}
     
     datastream_map = {
-        'pupil_area':{'input_data':ed.ellipse_fits['pupil'], 'parameter':'blink_corrected_area'},
+        'pupil_area':{'input_data':ed.ellipse_fits['pupil'], 'parameter':'normalized_blink_corrected_area'},
         'running':{'input_data': bd.running, 'parameter':'speed'}
     }
     
@@ -146,13 +146,23 @@ def get_event_triggered_responses(ed,bd):
             )
     return responses
 
-def subtract_mean(df):
+def subtract_mean(df_in):
+    df = df_in.copy()
     cols = [col for col in df.columns if col not in ['t','time']]
     for col in cols:
         df[col] = df[col] - df[col].mean(axis=0)
     return df
 
-def plot_event_triggered_response(df, ax=None, title='', mean_subtract = False, time_zero_subtract = False, fg_color='black',bg_color='gray', show_traces=False):
+def convert_to_fraction(df_in):
+    df = df_in.copy()
+    cols = [col for col in df.columns if col not in ['t','time']]
+    for col in cols:
+        s = df[col]
+        s0 = df[col].mean(axis=0)
+        df[col] = (s - s0)/s0
+    return df
+
+def plot_event_triggered_response(df, ax=None, title='', mean_subtract = False, fraction = False, time_zero_subtract = False, fg_color='black',bg_color='gray', show_traces=False):
     df = df.copy()
     if 't' in df.columns:
         time_key = 't'
@@ -161,6 +171,9 @@ def plot_event_triggered_response(df, ax=None, title='', mean_subtract = False, 
         
     if mean_subtract:
         df = subtract_mean(df)
+
+    if fraction:
+        df = convert_to_fraction(df)
         
     if time_zero_subtract:
         t = df[time_key]
@@ -171,7 +184,7 @@ def plot_event_triggered_response(df, ax=None, title='', mean_subtract = False, 
     
     if ax==None:
         fig,ax=plt.subplots()
-    cols = [col for col in df.columns if col is not 't']
+    cols = [col for col in df.columns if col != time_key]
     if show_traces:
         for col in cols:
             ax.plot(df[time_key], df[col],alpha=0.5,color=bg_color)
@@ -198,23 +211,25 @@ def designate_flashes(ax,omit=None,pre_color='blue',post_color='blue'):
             ax.axvspan(flash_start,flash_start+0.25,color=pre_color,alpha=0.25,zorder=-np.inf)
 
 def open_eye_data(osid):
-    print('on osid = {}'.format(osid))
+    print('opening eye data for osid = {}'.format(osid))
     try:
-        try:
-            return EyeTrackingData(int(osid),data_source='mongodb')
-        except ValueError:
-            return EyeTrackingData(int(osid),data_source='filesystem')
+        return EyeTrackingData(int(osid),data_source='filesystem')
     except:
         return None
 
 def get_response_data(osid):
+    t0 = time.time()
     ed = open_eye_data(osid)
     bd = open_behavior_data(osid)
-    v = get_event_triggered_responses(ed,bd)
+    try:
+        v = get_event_triggered_responses(ed,bd)
+    except Exception as e:
+        print('failed on {} with {}'.format(osid,e))
+    print('done with osid = {}, that took {} seconds'.format(osid,time.time() - t0))
     return v
 
 def open_behavior_data(osid):
-    print('on osid = {}'.format(osid))
+    print('opening behavior data for osid = {}'.format(osid))
     try:
         return BehaviorData(int(osid))
     except (AssertionError, OSError, TypeError):
@@ -250,8 +265,8 @@ def get_individual_image_responses(ed,bd):
     running_responses = {}
     for image in images:
         first_times = bd.visual_stimuli.query('image_name == @image and consecutive_flashes == 0')['time']
-        pupil_responses[image] = event_triggered_response(ed.ellipse_fits['pupil'],parameter='blink_corrected_area',event_times=first_times,t_before=5,t_after=30)
-        running_responses[image] = event_triggered_response(bd.running,parameter='speed',event_times=first_times,t_before=5,t_after=30)
+        pupil_responses[image] = event_triggered_response(ed.ellipse_fits['pupil'],parameter='normalized_blink_corrected_area',event_times=first_times,t_before=15,t_after=15)
+        running_responses[image] = event_triggered_response(bd.running,parameter='speed',event_times=first_times,t_before=15,t_after=15)
     
     return pupil_responses,running_responses
 
