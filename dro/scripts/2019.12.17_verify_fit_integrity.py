@@ -47,12 +47,12 @@ def get_pupil_and_eye_ratios(raw_point_path, ellipse_fit_path):
 
     # get ranges, then ratios
     min_x, max_x = get_range(pupil_columns)
-    pupil_fit_to_point_ratio = (max_x - min_x) / (ellipse_fits['pupil'].loc[1000]['width']*2)
+    pupil_fit_ratio = (max_x - min_x) / (ellipse_fits['pupil'].loc[1000]['width']*2)
 
     min_x, max_x = get_range(eye_columns)
-    eye_fit_to_point_ratio = (max_x - min_x) / (ellipse_fits['eye'].loc[1000]['width']*2)
+    eye_fit_ratio = (max_x - min_x) / (ellipse_fits['eye'].loc[1000]['width']*2)
 
-    return pupil_fit_to_point_ratio, eye_fit_to_point_ratio
+    return pupil_fit_ratio, eye_fit_ratio
 
 
 if __name__ == '__main__':
