@@ -258,15 +258,26 @@ def get_colors_for_session_numbers():
     return reds+blues
 
 
-def get_individual_image_responses(ed,bd):
-    images = [im for im in np.sort(bd.visual_stimuli['image_name'].unique()) if im != 'grayscreen']
+def get_individual_image_responses(ed,bd, relative_to='first_presentations', eye_parameter='blink_corrected_area'):
+    '''
+    parameters:
+        ed = eye data
+        bd = behavior data
+        relative_to:
+            'first_presentations' references to first presentation of every image (t0 = first_presentation of new)
+            'last_presentations' references to last presentation of every image (t0 = first presentation of new)
+    '''
+    images = [im for im in np.sort(bd.visual_stimuli['image_name'].unique()) if im.startswith('im')]
 
     pupil_responses = {}
     running_responses = {}
     for image in images:
-        first_times = bd.visual_stimuli.query('image_name == @image and consecutive_flashes == 0')['time']
-        pupil_responses[image] = event_triggered_response(ed.ellipse_fits['pupil'],parameter='normalized_blink_corrected_area',event_times=first_times,t_before=15,t_after=15)
-        running_responses[image] = event_triggered_response(bd.running,parameter='speed',event_times=first_times,t_before=15,t_after=15)
+        if relative_to == 'first_presentations':
+            first_times = bd.visual_stimuli.query('image_name == @image and consecutive_flashes == 0')['time']
+        elif relative_to == 'last_presentations':
+            first_times = bd.visual_stimuli.query('last_image_name == @image and consecutive_flashes == 0')['time']
+        pupil_responses[image] = convert_to_fraction(event_triggered_response(ed.ellipse_fits['pupil'],parameter=eye_parameter,event_times=first_times,t_before=15,t_after=15))
+        running_responses[image] = event_triggered_response(bd.running,parameter='speed',event_times=first_times,t_before=10,t_after=10)
     
     return pupil_responses,running_responses
 
