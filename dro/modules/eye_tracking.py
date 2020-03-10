@@ -120,15 +120,6 @@ def get_event_triggered_responses(ed,bd):
             )
     return responses
     
-def designate_flashes(ax,omit=None,pre_color='blue',post_color='blue'):
-    '''add vertical spans to designate stimulus flashes'''
-    lims = ax.get_xlim()
-    for flash_start in np.arange(0,lims[1],0.75):
-        if flash_start != omit:
-            ax.axvspan(flash_start,flash_start+0.25,color=post_color,alpha=0.25,zorder=-np.inf)
-    for flash_start in np.arange(-0.75,lims[0]-0.001,-0.75):
-        if flash_start != omit:
-            ax.axvspan(flash_start,flash_start+0.25,color=pre_color,alpha=0.25,zorder=-np.inf)
 
 def open_eye_data(osid):
     print('opening eye data for osid = {}'.format(osid))

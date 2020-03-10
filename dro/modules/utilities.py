@@ -9,7 +9,7 @@ import time
 import seaborn as sns
 
 
-def event_triggered_response(df, parameter, event_times, t_before=10, t_after=10, sampling_rate=60):
+def event_triggered_response(df, parameter, event_times, time_key=None, t_before=10, t_after=10, sampling_rate=60):
     '''
     build event triggered response around a given set of events
     required inputs:
@@ -17,27 +17,57 @@ def event_triggered_response(df, parameter, event_times, t_before=10, t_after=10
       parameter: column of input dataframe to extract around events
       event_times: times of events of interest
     optional inputs:
+      time_key: key to use for time (if None (default), will search for either 't' or 'time'. if 'index', use indices)
       t_before: time before each of event of interest
       t_after: time after each event of interest
       sampling_rate: desired sampling rate of output (input data will be interpolated)
     output:
       dataframe with one time column ('t') and one column of data for each event
     '''
-    if 't' in df.columns:
-        time_key = 't'
-    else:
-        time_key = 'time'
+    if time_key is None:
+        if 't' in df.columns:
+            time_key = 't'
+        else:
+            time_key = 'time'
 
-    d = {time_key: np.arange(-t_before, t_after, 1/sampling_rate)}
+    _d = {'time': np.arange(-t_before, t_after, 1/sampling_rate)}
     for ii, event_time in enumerate(np.array(event_times)):
 
-        df_local = df.query(
-            "{0} > (@event_time - @t_before) and {0} < (@event_time + @t_after)".format(time_key))
-        t = df_local[time_key] - event_time
+        if time_key == 'index':
+            df_local = df.loc[(event_time - t_before):(event_time + t_after)]
+            t = df_local.index.values - event_time
+        else:
+            df_local = df.query(
+                "{0} > (@event_time - @t_before) and {0} < (@event_time + @t_after)".format(time_key))
+            t = df_local[time_key] - event_time
         y = df_local[parameter]
 
-        d.update({'{}'.format(ii): np.interp(d[time_key], t, y)})
-    return pd.DataFrame(d)
+        _d.update({'event_{}_t={}'.format(ii, event_time): np.interp(_d['time'], t, y)})
+    return pd.DataFrame(_d)
+
+
+def event_triggered_raster(df, parameter, event_times, t_before=10, t_after=10, ):
+    '''
+    find discrete events surrounding list of event times
+    (e.g.: licks or spike times relative to external events)
+    required inputs:
+      df: dataframe of input data
+      parameter: column of input dataframe to extract around events
+      event_times: times of events of interest
+
+    optional inputs:
+      t_before: time before each of event of interest
+      t_after: time after each event of interest
+
+    output: 
+      dataframe with one column for each event. Each entry contains a list of events.
+    '''
+    _d = {}
+    for ii, event_time in enumerate(np.array(event_times)):
+        events = df.query(
+            "{0} > (@event_time - @t_before) and {0} < (@event_time + @t_after)".format(parameter)).values
+        _d.update({'event_{}_t={}'.format(ii, event_time): list(events - event_time}))
+    return pd.DataFrame(_d)
 
 
 def subtract_mean(df_in):
