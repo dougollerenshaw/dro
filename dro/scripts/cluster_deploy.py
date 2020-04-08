@@ -9,7 +9,7 @@ from pbstools import PythonJob
 
 def deploy_job(
     python_file,
-    python_executable = '/allen/programs/braintv/workgroups/nc-ophys/Doug/.conda/envs/visual_behavior/bin/python3.7',
+    python_executable = '~/.conda/envs/visual_behavior/bin/python3.7',
     python_args = [],
     jobname = 'unnamed'
     ):
@@ -32,13 +32,10 @@ def deploy_job(
     ).run(dryrun=False)
 
 if __name__ == "__main__":
-    manifest = pd.read_csv('/allen/programs/braintv/workgroups/nc-ophys/Doug/2019.12.10.sessions_with_tracking.csv')
-    for ind_row, row in manifest.iterrows():
-        osid = row['ophys_session_id']
-        print('sending job for osid={}'.format(osid))
+    for i in range(10):
+        print('sending job for i={}'.format(i))
 
         deploy_job(
-            python_file = '/home/dougo/code/dro/dro/scripts/2019.12.11_make_individual_image_response_plots.py',
-            python_args = osid,
-            jobname = '{}'.format(osid)
+            python_file = '/home/dougo/code/dro/dro/scripts/make_a_plot.py',
+            jobname = 'test_job_{}'.format(i)
         )
