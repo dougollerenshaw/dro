@@ -7,6 +7,7 @@ import os
 import numpy as np
 import time
 import seaborn as sns
+from collections import OrderedDict
 
 
 def event_triggered_response(df, parameter, event_times, time_key=None, t_before=10, t_after=10, sampling_rate=60):
@@ -125,3 +126,13 @@ def plot_event_triggered_response(df, ax=None, title='', mean_subtract=False, fr
     if ax == None:
         return fig, ax
     ax.set_title(title)
+                   
+
+
+def key_tree(d, level=0):
+    # A simple recursive func to print all the keys in a dict hierarchically. Like unix `tree` 
+    # taken from Nick Ponvert
+    for key, val in d.items():
+        print("{}|-- {}".format(level*'|   ', key))
+        if type(val) in [dict, OrderedDict]:
+            key_tree(val, level+1)
