@@ -96,8 +96,8 @@ if __name__ == '__main__':
     parser.add_argument(
         '--osid',
         type=int,
-        default='3389',
-        metavar='port on which to host. 3389 (Remote desktop port) by default, since it is open over VPN)'
+        default='0',
+        metavar='ophys session ID'
     )
     args = parser.parse_args()
     open_and_plot_running(args.osid)
