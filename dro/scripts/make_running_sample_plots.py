@@ -111,7 +111,7 @@ if __name__ == '__main__':
         type=str,
         default='',
         metavar='save directory'
-    )
+)
     args = parser.parse_args()
     if args.savedir == '':
         savedir = None

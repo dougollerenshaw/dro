@@ -9,7 +9,7 @@ import visual_behavior.data_access.loading as loading
 sys.path.append('/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/src/')
 from pbstools import pbstools  # NOQA E402
 
-parser = argparse.ArgumentParser(description='run sdk validation')
+parser = argparse.ArgumentParser(description='make running plots')
 parser.add_argument('--env', type=str, default='visual_behavior', metavar='name of conda environment to use')
 
 job_dir = r"/allen/programs/braintv/workgroups/nc-ophys/visual_behavior/cluster_jobs/job_records"
